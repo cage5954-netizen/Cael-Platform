@@ -82,7 +82,7 @@ export function WorldDetail({ world, onClose }: WorldDetailProps) {
                 onClick={() => setIsPlaying(true)}
               >
                 <Play className="w-5 h-5" />
-                Enter World
+                Enter Room
               </motion.button>
             ) : (
               <motion.div
@@ -93,7 +93,7 @@ export function WorldDetail({ world, onClose }: WorldDetailProps) {
                 <div className="text-center">
                   <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
                   <p className="text-gray-400">
-                    In a real implementation, the Unreal Engine world would load here
+                    In a real implementation, the Room experience would load here
                   </p>
                 </div>
               </motion.div>
@@ -126,7 +126,7 @@ export function WorldDetail({ world, onClose }: WorldDetailProps) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              About This World
+              About This Room
             </motion.h2>
             <motion.p
               className="text-xl text-gray-300 leading-relaxed"
@@ -151,7 +151,7 @@ export function WorldDetail({ world, onClose }: WorldDetailProps) {
             >
               <h2 className="text-5xl text-white mb-4">The Process</h2>
               <p className="text-gray-400 text-lg">
-                How this world came to be
+                How this Room came to be
               </p>
             </motion.div>
 
@@ -201,7 +201,7 @@ export function WorldDetail({ world, onClose }: WorldDetailProps) {
             className="px-8 py-4 bg-white text-black hover:bg-gray-200 transition-colors text-lg"
             onClick={onClose}
           >
-            Back to Worlds
+            Back to Rooms
           </button>
         </div>
       </div>
