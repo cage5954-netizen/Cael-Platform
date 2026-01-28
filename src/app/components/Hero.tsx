@@ -72,19 +72,6 @@ export function Hero({ onEnter }: HeroProps) {
 
       <section className="bg-gradient-to-b from-black via-zinc-950 to-black py-24">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="relative">
-            <motion.div
-              className="absolute -top-10 -left-6 h-40 w-40 rounded-full bg-white/5 blur-3xl"
-              animate={{ opacity: [0.2, 0.35, 0.2] }}
-              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.div
-              className="absolute -bottom-16 right-0 h-52 w-52 rounded-full bg-white/5 blur-3xl"
-              animate={{ opacity: [0.15, 0.3, 0.15] }}
-              transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
-            />
-          </div>
-
           <div className="grid gap-10 md:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-8">
               <p className="text-gray-400 uppercase text-xs tracking-[0.35em]">Presence</p>
@@ -95,11 +82,6 @@ export function Hero({ onEnter }: HeroProps) {
                 Move through a space that holds identity over time. Rooms are persistent, owned by their creators, and
                 meant to be inhabited.
               </p>
-              <div className="flex items-center gap-4 text-sm text-gray-400">
-                <span className="rounded-full border border-white/20 px-4 py-2">Rooms</span>
-                <span className="rounded-full border border-white/20 px-4 py-2">Presence</span>
-                <span className="rounded-full border border-white/20 px-4 py-2">Build</span>
-              </div>
             </div>
 
             <div className="space-y-6">

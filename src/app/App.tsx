@@ -59,6 +59,7 @@ export default function App() {
   const handleIntroComplete = () => {
     sessionStorage.setItem('cael-intro-complete', 'true');
     setIntroComplete(true);
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   };
 
   const handleToggleMute = () => {
