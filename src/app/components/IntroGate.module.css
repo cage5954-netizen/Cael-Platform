@@ -1,0 +1,66 @@
+.gate {
+  position: relative;
+  isolation: isolate;
+}
+
+.scanlines::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: soft-light;
+  opacity: 0.5;
+}
+
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 55%),
+    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.06), transparent 60%);
+  opacity: 0.25;
+}
+
+.glitchText {
+  text-shadow: -1px 0 rgba(118, 182, 255, 0.4), 1px 0 rgba(255, 130, 177, 0.35);
+}
+
+.jitter {
+  animation: jitter 0.8s infinite;
+}
+
+.glow {
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.12);
+}
+
+@keyframes jitter {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(-1px);
+  }
+  55% {
+    transform: translateY(1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jitter {
+    animation: none;
+  }
+
+  .scanlines::before,
+  .scanlines::after {
+    opacity: 0.2;
+  }
+}
