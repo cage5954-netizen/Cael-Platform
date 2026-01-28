@@ -26,7 +26,7 @@ export function WorldBrowser({ onSelectWorld, onBack }: WorldBrowserProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            Available Worlds
+            Available Rooms
           </motion.h1>
           <motion.p
             className="text-gray-400 text-lg"
@@ -34,7 +34,7 @@ export function WorldBrowser({ onSelectWorld, onBack }: WorldBrowserProps) {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            {worlds.length} experiences ready to explore
+            {worlds.length} Rooms ready to explore
           </motion.p>
         </div>
 
