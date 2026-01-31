@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { Hero } from './components/Hero';
-import { IntroGate } from './components/IntroGate';
+import { IntroOverlay } from './components/IntroOverlay';
 import { WorldBrowser } from './components/WorldBrowser';
 import { WorldDetail } from './components/WorldDetail';
 import { World } from './data/worlds';
@@ -69,7 +69,7 @@ export default function App() {
   if (!introComplete) {
     return (
       <div className="size-full">
-        <IntroGate onEnterStart={handleIntroStart} onEnterComplete={handleIntroComplete} />
+        <IntroOverlay onEnterStart={handleIntroStart} onExitComplete={handleIntroComplete} />
         <audio ref={audioRef} src="/audio/ambient-loop.mp3" loop />
       </div>
     );
