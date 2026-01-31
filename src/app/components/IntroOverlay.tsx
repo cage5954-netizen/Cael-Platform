@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './IntroOverlay.module.css';
 
 interface IntroOverlayProps {
@@ -6,7 +6,8 @@ interface IntroOverlayProps {
   onExitComplete: () => void;
 }
 
-const EXIT_DURATION_MS = 600;
+// Must match (or be slightly longer than) CSS transition on .overlay/.exiting
+const EXIT_DURATION_MS = 700;
 
 export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps) {
   const [progress, setProgress] = useState(0);
@@ -15,7 +16,9 @@ export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps
   const [isExiting, setIsExiting] = useState(false);
   const [isReducedMotion, setIsReducedMotion] = useState(false);
 
-  // Reduced motion support
+  const exitTimerRef = useRef<number | null>(null);
+
+  // Reduced motion
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setIsReducedMotion(mediaQuery.matches);
@@ -29,25 +32,26 @@ export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps
   useEffect(() => {
     if (!isMounted) return;
 
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = prevOverflow;
     };
   }, [isMounted]);
 
-  // Cinematic loading progress (smooth + deterministic)
+  // Deterministic loading progress
   useEffect(() => {
     if (!isMounted) return;
 
     let rafId = 0;
     const startTime = performance.now();
-    const duration = 2800; // fixed duration for consistency
+    const duration = 2800; // consistent
 
     const tick = (timestamp: number) => {
       const elapsed = timestamp - startTime;
       const t = Math.min(elapsed / duration, 1);
 
-      // Ease-out curve
+      // smooth ease-out
       const eased = 1 - Math.pow(1 - t, 3);
       const nextValue = Math.round(eased * 100);
 
@@ -65,88 +69,91 @@ export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps
     return () => cancelAnimationFrame(rafId);
   }, [isMounted]);
 
-  // Enter key support once ready
+  // Enter key once ready
   useEffect(() => {
     if (!isComplete) return;
 
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Enter') {
         handleEnter();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isComplete]);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isComplete, isExiting]);
 
-  // Exit overlay cleanly
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (exitTimerRef.current) {
+        window.clearTimeout(exitTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleEnter = () => {
     if (!isComplete || isExiting) return;
 
     onEnterStart();
     setIsExiting(true);
 
-    window.setTimeout(() => {
+    // wait for CSS fade/blur to finish
+    exitTimerRef.current = window.setTimeout(() => {
       setIsMounted(false);
       onExitComplete();
     }, EXIT_DURATION_MS);
   };
 
-  const progressStyle = useMemo(
-    () => ({
-      width: `${progress}%`,
-    }),
-    [progress],
-  );
+  const progressStyle = useMemo(() => ({ width: `${progress}%` }), [progress]);
 
   if (!isMounted) return null;
 
   return (
     <div
-      className={`${styles.overlay} ${styles.gate} ${isExiting ? styles.exiting : ''}`}
+      className={`${styles.overlay} ${styles.gate} ${styles.scanlines} ${isExiting ? styles.exiting : ''}`}
       aria-live="polite"
+      // explicitly block clicks to underlying app
+      style={{ pointerEvents: 'auto' }}
     >
-      {/* Subtle bloom only (no grain, no scanlines) */}
+      {/* Subtle monochrome bloom (consistent with Hero baseline) */}
       <div className="pointer-events-none absolute inset-0 opacity-60 [background:radial-gradient(circle_at_center,rgba(255,255,255,0.10),transparent_55%)]" />
 
-      <div className="relative z-10 w-full max-w-[860px] px-8 text-center">
-        {/* Label */}
-        <p className="text-[11px] tracking-[0.65em] text-gray-400">
-          LOADING
-        </p>
+      {/* Centered content (robust) */}
+      <div className="relative z-10 grid w-full place-items-center px-6">
+        <div className="w-full max-w-[860px] text-center">
+          <p className="text-[11px] tracking-[0.65em] text-gray-400">LOADING</p>
 
-        {/* Percentage */}
-        <div
-          className={`mt-5 text-7xl md:text-8xl font-semibold tabular-nums ${
-            !isReducedMotion ? styles.jitter : ''
-          }`}
-        >
-          {progress}%
-        </div>
-
-        {/* Progress Line */}
-        <div className="mx-auto mt-8 h-[3px] w-full bg-white/10 overflow-hidden">
           <div
-            className={`h-full bg-white/70 transition-[width] duration-200 ${styles.glow}`}
-            style={progressStyle}
-          />
-        </div>
-
-        {/* Status */}
-        <p className="mt-5 text-sm text-gray-400">
-          {isComplete ? 'System ready.' : 'Initializing space.'}
-        </p>
-
-        {/* Enter */}
-        {isComplete && (
-          <button
-            type="button"
-            onClick={handleEnter}
-            className="mx-auto mt-10 rounded-full border border-white/10 bg-white/5 px-14 py-4 text-[11px] uppercase tracking-[0.35em] text-gray-200 backdrop-blur hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50"
+            className={`mt-5 text-7xl md:text-8xl font-semibold tabular-nums ${
+              !isReducedMotion ? styles.jitter : ''
+            }`}
           >
-            Click to enter
-          </button>
-        )}
+            {progress}%
+          </div>
+
+          <div className="mx-auto mt-8 h-[3px] w-full bg-white/10 overflow-hidden">
+            <div
+              className={`h-full bg-white/70 transition-[width] duration-200 ${styles.glow}`}
+              style={progressStyle}
+            />
+          </div>
+
+          <p className="mt-5 text-sm text-gray-400">
+            {isComplete ? 'System ready.' : 'Initializing space.'}
+          </p>
+
+          {isComplete && (
+            <button
+              type="button"
+              onClick={handleEnter}
+              className="mx-auto mt-10 rounded-full border border-white/10 bg-white/5 px-14 py-4 text-[11px] uppercase tracking-[0.35em] text-gray-200 backdrop-blur hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50"
+            >
+              Click to enter
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
