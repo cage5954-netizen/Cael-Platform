@@ -1,16 +1,21 @@
 import { IntroOverlay } from './IntroOverlay';
 
-interface IntroGateProps {
+type IntroGateProps = {
   onEnter: () => void;
-  onEnterStart?: () => void;
-}
+};
 
-export function IntroGate({ onEnter, onEnterStart }: IntroGateProps) {
-  const handleStart = () => {
-    if (onEnterStart) {
-      onEnterStart();
-    }
-  };
-
-  return <IntroOverlay onEnterStart={handleStart} onExitComplete={onEnter} />;
+/**
+ * Deprecated: kept only for backwards compatibility.
+ * Use IntroOverlay as the single intro gate.
+ */
+export function IntroGate({ onEnter }: IntroGateProps) {
+  return (
+    <IntroOverlay
+      onEnterStart={() => {
+        // IntroOverlay handles audio start via App.
+        // This prop exists to keep legacy signature stable.
+      }}
+      onExitComplete={onEnter}
+    />
+  );
 }

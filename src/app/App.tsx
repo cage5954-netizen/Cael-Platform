@@ -32,9 +32,46 @@ export default function App() {
     localStorage.setItem('cael-muted', String(isMuted));
   }, [isMuted]);
 
-  const handleEnter = () => {
-    setCurrentView('browser');
+  // Intro gate: if false, NOTHING else should render.
+  const [introComplete, setIntroComplete] = useState(false);
+
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const storedMute = localStorage.getItem('cael-muted');
+    if (storedMute) setIsMuted(storedMute === 'true');
+
+    const hasVisited = sessionStorage.getItem('cael-intro-complete') === 'true';
+    setIntroComplete(hasVisited);
+  }, []);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = 0.2;
+      audioRef.current.muted = isMuted;
+    }
+    localStorage.setItem('cael-muted', String(isMuted));
+  }, [isMuted]);
+
+  // Called when user clicks "Enter" (start intro exit + audio)
+  const handleIntroEnterStart = () => {
+    if (audioRef.current && !isMuted) {
+      void audioRef.current.play().catch(() => undefined);
+    }
   };
+
+  // Called after overlay exit animation fully completes (overlay will unmount on next render)
+  const handleIntroExitComplete = () => {
+    sessionStorage.setItem('cael-intro-complete', 'true');
+    setIntroComplete(true);
+
+    // Reset scroll so the app starts at top
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  };
+
+  // App navigation
+  const handleEnter = () => setCurrentView('browser');
 
   const handleSelectWorld = (world: World) => {
     setSelectedWorld(world);
@@ -50,26 +87,16 @@ export default function App() {
     }
   };
 
-  const handleIntroStart = () => {
-    if (audioRef.current && !isMuted) {
-      void audioRef.current.play().catch(() => undefined);
-    }
-  };
+  const handleToggleMute = () => setIsMuted((prev) => !prev);
 
-  const handleIntroComplete = () => {
-    sessionStorage.setItem('cael-intro-complete', 'true');
-    setIntroComplete(true);
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-  };
-
-  const handleToggleMute = () => {
-    setIsMuted((prev) => !prev);
-  };
-
+  
   if (!introComplete) {
     return (
       <div className="size-full">
-        <IntroOverlay onEnterStart={handleIntroStart} onExitComplete={handleIntroComplete} />
+        <IntroOverlay
+          onEnterStart={handleIntroEnterStart}
+          onExitComplete={handleIntroExitComplete}
+        />
         <audio ref={audioRef} src="/audio/ambient-loop.mp3" loop />
       </div>
     );
@@ -85,26 +112,18 @@ export default function App() {
       >
         {isMuted ? 'Muted' : 'Sound'}
       </button>
+
       <audio ref={audioRef} src="/audio/ambient-loop.mp3" loop />
+
       <AnimatePresence mode="wait">
-        {currentView === 'hero' && (
-          <Hero key="hero" onEnter={handleEnter} />
-        )}
+        {currentView === 'hero' && <Hero key="hero" onEnter={handleEnter} />}
 
         {currentView === 'browser' && (
-          <WorldBrowser
-            key="browser"
-            onSelectWorld={handleSelectWorld}
-            onBack={handleBack}
-          />
+          <WorldBrowser key="browser" onSelectWorld={handleSelectWorld} onBack={handleBack} />
         )}
 
         {currentView === 'detail' && selectedWorld && (
-          <WorldDetail
-            key="detail"
-            world={selectedWorld}
-            onClose={handleBack}
-          />
+          <WorldDetail key="detail" world={selectedWorld} onClose={handleBack} />
         )}
       </AnimatePresence>
     </div>

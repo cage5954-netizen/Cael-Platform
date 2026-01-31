@@ -1,0 +1,40 @@
+.gate {
+  position: relative;
+  isolation: isolate;
+}
+
+/* No noise. Keep class as a no-op so existing markup doesn’t break. */
+.scanlines::before,
+.scanlines::after {
+  content: none;
+}
+
+/* Monochrome-only (subtle) */
+.glitchText {
+  text-shadow: -1px 0 rgba(255, 255, 255, 0.14), 1px 0 rgba(255, 255, 255, 0.10);
+}
+
+.jitter {
+  animation: jitter 1.2s infinite;
+}
+
+.glow {
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.10);
+}
+
+@keyframes jitter {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jitter {
+    animation: none;
+  }
+}
+

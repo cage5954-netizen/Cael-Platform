@@ -1,19 +1,24 @@
+/* src/app/components/IntroOverlay.module.css */
+
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 90;
   background: #000;
   color: #fff;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: auto;
-  transition: opacity 0.6s ease, filter 0.6s ease;
+
+  /* Keep exit softness (no “glitch”) */
+  transition: opacity 0.7s ease, filter 0.7s ease;
 }
 
 .exiting {
   opacity: 0;
-  filter: blur(6px);
+  /* keep blur subtle, not smeary */
+  filter: blur(3px);
 }
 
 .gate {
@@ -21,16 +26,25 @@
   isolation: isolate;
 }
 
+/* No noise. Keep class as a no-op so existing markup doesn’t break. */
+.scanlines::before,
+.scanlines::after {
+  content: none;
+}
+
+/* Monochrome-only, subtle */
 .glitchText {
-  text-shadow: -1px 0 rgba(118, 182, 255, 0.4), 1px 0 rgba(255, 130, 177, 0.35);
+  text-shadow:
+    -1px 0 rgba(255, 255, 255, 0.14),
+     1px 0 rgba(255, 255, 255, 0.10);
 }
 
 .jitter {
-  animation: jitter 0.8s infinite;
+  animation: jitter 1.2s infinite;
 }
 
 .glow {
-  box-shadow: 0 0 24px rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.10);
 }
 
 @keyframes jitter {
@@ -38,11 +52,8 @@
   100% {
     transform: translateY(0);
   }
-  45% {
+  50% {
     transform: translateY(-1px);
-  }
-  55% {
-    transform: translateY(1px);
   }
 }
 
