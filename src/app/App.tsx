@@ -11,6 +11,26 @@ type View = 'hero' | 'browser' | 'detail';
 export default function App() {
   const [currentView, setCurrentView] = useState<View>('hero');
   const [selectedWorld, setSelectedWorld] = useState<World | null>(null);
+  const [introComplete, setIntroComplete] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const storedMute = localStorage.getItem('cael-muted');
+    if (storedMute) {
+      setIsMuted(storedMute === 'true');
+    }
+    const hasVisited = sessionStorage.getItem('cael-intro-complete') === 'true';
+    setIntroComplete(hasVisited);
+  }, []);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = 0.2;
+      audioRef.current.muted = isMuted;
+    }
+    localStorage.setItem('cael-muted', String(isMuted));
+  }, [isMuted]);
 
   // Intro gate: if false, NOTHING else should render.
   const [introComplete, setIntroComplete] = useState(false);

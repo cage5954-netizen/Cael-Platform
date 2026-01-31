@@ -100,7 +100,7 @@ export function WorldBrowser({ onSelectWorld, onBack }: WorldBrowserProps) {
         </div>
 
         {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {worlds.map((world, index) => (
             <motion.article
               key={world.id}
