@@ -15,18 +15,11 @@ export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps
   const [isMounted, setIsMounted] = useState(true);
   const [isExiting, setIsExiting] = useState(false);
   const [isReducedMotion, setIsReducedMotion] = useState(false);
-  const [portalReady, setPortalReady] = useState(false);
-
-  // Ensure we only portal on client
-  useEffect(() => {
-    setPortalReady(true);
-  }, []);
 
   // Reduced motion support
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setIsReducedMotion(mediaQuery.matches);
-
     update();
     mediaQuery.addEventListener('change', update);
     return () => mediaQuery.removeEventListener('change', update);
@@ -35,17 +28,10 @@ export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps
   // Lock scroll while overlay is mounted
   useEffect(() => {
     if (!isMounted) return;
-
-    const prevOverflow = document.body.style.overflow;
-    const prevBg = document.body.style.background;
-
+    const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    // Prevent any white flash behind overlay
-    document.body.style.background = '#000';
-
     return () => {
-      document.body.style.overflow = prevOverflow;
-      document.body.style.background = prevBg;
+      document.body.style.overflow = prev;
     };
   }, [isMounted]);
 
@@ -55,7 +41,7 @@ export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps
 
     let rafId = 0;
     const startTime = performance.now();
-    const duration = 2800; // fixed duration for consistency
+    const duration = 2800;
 
     const tick = (timestamp: number) => {
       const elapsed = timestamp - startTime;
@@ -83,12 +69,12 @@ export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps
   useEffect(() => {
     if (!isComplete) return;
 
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Enter') handleEnter();
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isComplete, isExiting]);
 
@@ -106,25 +92,23 @@ export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps
 
   const progressStyle = useMemo(() => ({ width: `${progress}%` }), [progress]);
 
-  if (!isMounted || !portalReady) return null;
+  if (!isMounted) return null;
 
-  const node = (
+  const overlay = (
     <div
-      className={`${styles.overlay} ${styles.gate} ${isExiting ? styles.exiting : ''}`}
+      className={`${styles.overlay} ${styles.gate} ${styles.scanlines} ${isExiting ? styles.exiting : ''}`}
       aria-live="polite"
-      role="dialog"
-      aria-modal="true"
+      // extra safety: force viewport sizing even if CSS gets weird
+      style={{ width: '100vw', height: '100vh' }}
     >
-      {/* Subtle bloom only */}
+      {/* Subtle bloom */}
       <div className="pointer-events-none absolute inset-0 opacity-60 [background:radial-gradient(circle_at_center,rgba(255,255,255,0.10),transparent_55%)]" />
 
       <div className="relative z-10 w-full max-w-[860px] px-8 text-center">
         <p className="text-[11px] tracking-[0.65em] text-gray-400">LOADING</p>
 
         <div
-          className={`mt-5 text-7xl md:text-8xl font-semibold tabular-nums ${
-            !isReducedMotion ? styles.jitter : ''
-          }`}
+          className={`mt-5 text-7xl md:text-8xl font-semibold tabular-nums ${!isReducedMotion ? styles.jitter : ''}`}
         >
           {progress}%
         </div>
@@ -153,6 +137,6 @@ export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps
     </div>
   );
 
-  // Portal to body so "fixed" can’t be clipped by transforms higher up
-  return createPortal(node, document.body);
+  // Portal prevents fixed-position bugs caused by transformed ancestors.
+  return createPortal(overlay, document.body);
 }
