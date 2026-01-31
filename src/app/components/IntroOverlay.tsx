@@ -15,19 +15,19 @@ export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps
   const [isExiting, setIsExiting] = useState(false);
   const [isReducedMotion, setIsReducedMotion] = useState(false);
 
+  // Reduced motion support
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setIsReducedMotion(mediaQuery.matches);
-    const handleChange = () => setIsReducedMotion(mediaQuery.matches);
-    mediaQuery.addEventListener('change', handleChange);
+    const update = () => setIsReducedMotion(mediaQuery.matches);
 
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    update();
+    mediaQuery.addEventListener('change', update);
+    return () => mediaQuery.removeEventListener('change', update);
   }, []);
 
+  // Lock scroll while overlay is mounted
   useEffect(() => {
-    if (!isMounted) {
-      return;
-    }
+    if (!isMounted) return;
 
     document.body.style.overflow = 'hidden';
     return () => {
@@ -35,27 +35,29 @@ export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps
     };
   }, [isMounted]);
 
+  // Cinematic loading progress (smooth + deterministic)
   useEffect(() => {
-    if (!isMounted) {
-      return;
-    }
+    if (!isMounted) return;
 
     let rafId = 0;
-    let startTime = performance.now();
-    const duration = 3200 + Math.random() * 800;
+    const startTime = performance.now();
+    const duration = 2800; // fixed duration for consistency
 
     const tick = (timestamp: number) => {
       const elapsed = timestamp - startTime;
-      const eased = Math.min(elapsed / duration, 1);
-      const jitter = Math.random() > 0.92 ? Math.random() * 6 : 0;
-      const nextValue = Math.min(100, Math.round(eased * 100 + jitter));
+      const t = Math.min(elapsed / duration, 1);
 
-      setProgress((prev) => (nextValue > prev ? nextValue : prev));
-      if (eased < 1) {
+      // Ease-out curve
+      const eased = 1 - Math.pow(1 - t, 3);
+      const nextValue = Math.round(eased * 100);
+
+      setProgress(nextValue);
+
+      if (t < 1) {
         rafId = requestAnimationFrame(tick);
       } else {
-        setIsComplete(true);
         setProgress(100);
+        setIsComplete(true);
       }
     };
 
@@ -63,10 +65,9 @@ export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps
     return () => cancelAnimationFrame(rafId);
   }, [isMounted]);
 
+  // Enter key support once ready
   useEffect(() => {
-    if (!isComplete) {
-      return;
-    }
+    if (!isComplete) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Enter') {
@@ -78,13 +79,13 @@ export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isComplete]);
 
+  // Exit overlay cleanly
   const handleEnter = () => {
-    if (isExiting) {
-      return;
-    }
+    if (!isComplete || isExiting) return;
 
     onEnterStart();
     setIsExiting(true);
+
     window.setTimeout(() => {
       setIsMounted(false);
       onExitComplete();
@@ -98,40 +99,52 @@ export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps
     [progress],
   );
 
-  if (!isMounted) {
-    return null;
-  }
+  if (!isMounted) return null;
 
   return (
-    <div className={`${styles.overlay} ${styles.gate} ${isExiting ? styles.exiting : ''}`} aria-live="polite">
-      <div className="relative z-10 w-full max-w-lg px-8 text-center">
-        <div className="text-xs uppercase tracking-[0.4em] text-gray-500">Loading</div>
+    <div
+      className={`${styles.overlay} ${styles.gate} ${isExiting ? styles.exiting : ''}`}
+      aria-live="polite"
+    >
+      {/* Subtle bloom only (no grain, no scanlines) */}
+      <div className="pointer-events-none absolute inset-0 opacity-60 [background:radial-gradient(circle_at_center,rgba(255,255,255,0.10),transparent_55%)]" />
+
+      <div className="relative z-10 w-full max-w-[860px] px-8 text-center">
+        {/* Label */}
+        <p className="text-[11px] tracking-[0.65em] text-gray-400">
+          LOADING
+        </p>
+
+        {/* Percentage */}
         <div
-          className={`mt-6 text-6xl font-medium text-white ${styles.glitchText} ${
+          className={`mt-5 text-7xl md:text-8xl font-semibold tabular-nums ${
             !isReducedMotion ? styles.jitter : ''
           }`}
         >
           {progress}%
         </div>
 
-        <div className="mt-8 h-2 w-full overflow-hidden rounded-full bg-white/10">
+        {/* Progress Line */}
+        <div className="mx-auto mt-8 h-[3px] w-full bg-white/10 overflow-hidden">
           <div
-            className={`h-full rounded-full bg-white/70 transition-[width] duration-300 ${styles.glow}`}
+            className={`h-full bg-white/70 transition-[width] duration-200 ${styles.glow}`}
             style={progressStyle}
           />
         </div>
 
-        <div className="mt-8 text-sm text-gray-400">
+        {/* Status */}
+        <p className="mt-5 text-sm text-gray-400">
           {isComplete ? 'System ready.' : 'Initializing space.'}
-        </div>
+        </p>
 
+        {/* Enter */}
         {isComplete && (
           <button
             type="button"
-            className="mt-6 w-full rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm uppercase tracking-[0.3em] text-white hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/60"
             onClick={handleEnter}
+            className="mx-auto mt-10 rounded-full border border-white/10 bg-white/5 px-14 py-4 text-[11px] uppercase tracking-[0.35em] text-gray-200 backdrop-blur hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50"
           >
-            CLICK TO ENTER
+            Click to enter
           </button>
         )}
       </div>

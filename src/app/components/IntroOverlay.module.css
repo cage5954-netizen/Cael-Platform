@@ -20,6 +20,7 @@
   isolation: isolate;
 }
 
+/* Keep subtle “glitch” as monochrome-adjacent (no heavy noise layers) */
 .glitchText {
   text-shadow: -1px 0 rgba(118, 182, 255, 0.4), 1px 0 rgba(255, 130, 177, 0.35);
 }
