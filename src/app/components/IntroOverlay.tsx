@@ -1,143 +1,108 @@
 import { useEffect, useMemo, useState } from 'react';
-import styles from './IntroOverlay.module.css';
+import { AnimatePresence, motion } from 'motion/react';
 
-interface IntroOverlayProps {
-  onEnterStart: () => void;
-  onExitComplete: () => void;
-}
+type IntroOverlayProps = {
+  onEnterStart: () => void;      // start audio
+  onExitComplete: () => void;    // set introComplete in App
+};
 
-const EXIT_DURATION_MS = 600;
+type Phase = 'loading' | 'ready' | 'exiting';
 
 export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps) {
+  const [phase, setPhase] = useState<Phase>('loading');
   const [progress, setProgress] = useState(0);
-  const [isComplete, setIsComplete] = useState(false);
-  const [isMounted, setIsMounted] = useState(true);
-  const [isExiting, setIsExiting] = useState(false);
-  const [isReducedMotion, setIsReducedMotion] = useState(false);
+
+  const isReady = progress >= 100;
+
+  // Fake progress (replace later with real asset preloads if you want)
+  useEffect(() => {
+    if (phase !== 'loading') return;
+
+    const id = window.setInterval(() => {
+      setProgress((p) => {
+        // ease-out feel: slows near the end
+        const bump = p < 70 ? 3 : p < 90 ? 2 : 1;
+        return Math.min(100, p + bump);
+      });
+    }, 60);
+
+    return () => window.clearInterval(id);
+  }, [phase]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setIsReducedMotion(mediaQuery.matches);
-    const handleChange = () => setIsReducedMotion(mediaQuery.matches);
-    mediaQuery.addEventListener('change', handleChange);
+    if (isReady && phase === 'loading') setPhase('ready');
+  }, [isReady, phase]);
 
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  useEffect(() => {
-    if (!isMounted) {
-      return;
-    }
-
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isMounted]);
-
-  useEffect(() => {
-    if (!isMounted) {
-      return;
-    }
-
-    let rafId = 0;
-    let startTime = performance.now();
-    const duration = 3200 + Math.random() * 800;
-
-    const tick = (timestamp: number) => {
-      const elapsed = timestamp - startTime;
-      const eased = Math.min(elapsed / duration, 1);
-      const jitter = Math.random() > 0.92 ? Math.random() * 6 : 0;
-      const nextValue = Math.min(100, Math.round(eased * 100 + jitter));
-
-      setProgress((prev) => (nextValue > prev ? nextValue : prev));
-      if (eased < 1) {
-        rafId = requestAnimationFrame(tick);
-      } else {
-        setIsComplete(true);
-        setProgress(100);
-      }
-    };
-
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, [isMounted]);
-
-  useEffect(() => {
-    if (!isComplete) {
-      return;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Enter') {
-        handleEnter();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isComplete]);
+  const statusText = useMemo(() => {
+    if (phase === 'loading') return 'Initializing space.';
+    if (phase === 'ready') return 'System ready.';
+    return 'Entering...';
+  }, [phase]);
 
   const handleEnter = () => {
-    if (isExiting) {
-      return;
-    }
-
+    if (phase !== 'ready') return;
     onEnterStart();
-    setIsExiting(true);
-    window.setTimeout(() => {
-      setIsMounted(false);
-      onExitComplete();
-    }, EXIT_DURATION_MS);
+    setPhase('exiting');
   };
 
-  const progressStyle = useMemo(
-    () => ({
-      width: `${progress}%`,
-    }),
-    [progress],
-  );
-
-  if (!isMounted) {
-    return null;
-  }
-
   return (
-    <div
-      className={`${styles.overlay} ${styles.gate} ${styles.scanlines} ${isExiting ? styles.exiting : ''}`}
-      aria-live="polite"
-    >
-      <div className="relative z-10 w-full max-w-lg px-8 text-center">
-        <div className="text-xs uppercase tracking-[0.4em] text-gray-500">Loading</div>
-        <div
-          className={`mt-6 text-6xl font-medium text-white ${styles.glitchText} ${
-            !isReducedMotion ? styles.jitter : ''
-          }`}
-        >
-          {progress}%
+    <AnimatePresence>
+      <motion.div
+        key="intro-overlay"
+        // ✅ THIS is what makes it a true overlay.
+        className="fixed inset-0 z-[9999] bg-black text-white"
+        initial={{ opacity: 1 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 1.1, ease: 'easeInOut' }}
+        // block interaction behind it
+        style={{ pointerEvents: 'auto' }}
+      >
+        {/* subtle vignette */}
+        <div className="pointer-events-none absolute inset-0 opacity-60 [background:radial-gradient(circle_at_center,rgba(255,255,255,0.06),transparent_55%)]" />
+
+        <div className="absolute top-10 left-0 right-0 flex flex-col items-center">
+          <p className="text-[10px] tracking-[0.5em] text-gray-400">LOADING</p>
+
+          <div className="mt-2 text-4xl font-semibold tabular-nums">
+            {Math.round(progress)}%
+          </div>
+
+          <div className="mt-4 h-[2px] w-[420px] max-w-[70vw] bg-white/10">
+            <div
+              className="h-full bg-white/60"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+
+          <p className="mt-3 text-xs text-gray-400">{statusText}</p>
+
+          {phase === 'ready' && (
+            <button
+              type="button"
+              onClick={handleEnter}
+              className="mt-6 rounded-full border border-white/10 bg-white/5 px-10 py-3 text-[11px] uppercase tracking-[0.35em] text-gray-200 backdrop-blur hover:bg-white/10"
+            >
+              Click to enter
+            </button>
+          )}
         </div>
 
-        <div className="mt-8 h-2 w-full overflow-hidden rounded-full bg-white/10">
-          <div
-            className={`h-full rounded-full bg-white/70 transition-[width] duration-300 ${styles.glow}`}
-            style={progressStyle}
+        {/* IMPORTANT: call onExitComplete only after exit finishes */}
+        {phase === 'exiting' && (
+          <motion.div
+            className="absolute inset-0"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.1, ease: 'easeInOut' }}
+            onAnimationComplete={() => {
+              // triggers App to switch to main UI (IntroOverlay will unmount)
+              onExitComplete();
+            }}
           />
-        </div>
-
-        <div className="mt-8 text-sm text-gray-400">
-          {isComplete ? 'System ready.' : 'Initializing space.'}
-        </div>
-
-        {isComplete && (
-          <button
-            type="button"
-            className="mt-6 w-full rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm uppercase tracking-[0.3em] text-white hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/60"
-            onClick={handleEnter}
-          >
-            CLICK TO ENTER
-          </button>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
