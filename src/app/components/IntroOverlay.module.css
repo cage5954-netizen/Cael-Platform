@@ -20,32 +20,7 @@
   isolation: isolate;
 }
 
-.scanlines::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.05),
-    rgba(255, 255, 255, 0.05) 1px,
-    transparent 1px,
-    transparent 3px
-  );
-  mix-blend-mode: soft-light;
-  opacity: 0.5;
-}
-
-.scanlines::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 55%),
-    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.06), transparent 60%);
-  opacity: 0.25;
-}
-
+/* Keep subtle “glitch” as monochrome-adjacent (no heavy noise layers) */
 .glitchText {
   text-shadow: -1px 0 rgba(118, 182, 255, 0.4), 1px 0 rgba(255, 130, 177, 0.35);
 }
@@ -76,8 +51,7 @@
     animation: none;
   }
 
-  .scanlines::before,
-  .scanlines::after {
-    opacity: 0.2;
+  .overlay {
+    filter: none;
   }
 }

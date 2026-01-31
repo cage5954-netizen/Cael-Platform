@@ -45,8 +45,6 @@ export default function App() {
   const handleIntroExitComplete = () => {
     sessionStorage.setItem('cael-intro-complete', 'true');
     setIntroComplete(true);
-
-    // Reset scroll so the app starts at top
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   };
 
@@ -69,7 +67,7 @@ export default function App() {
 
   const handleToggleMute = () => setIsMuted((prev) => !prev);
 
-  
+  // ✅ HARD GATE: intro is exclusive; app UI cannot coexist.
   if (!introComplete) {
     return (
       <div className="size-full">
@@ -99,11 +97,19 @@ export default function App() {
         {currentView === 'hero' && <Hero key="hero" onEnter={handleEnter} />}
 
         {currentView === 'browser' && (
-          <WorldBrowser key="browser" onSelectWorld={handleSelectWorld} onBack={handleBack} />
+          <WorldBrowser
+            key="browser"
+            onSelectWorld={handleSelectWorld}
+            onBack={handleBack}
+          />
         )}
 
         {currentView === 'detail' && selectedWorld && (
-          <WorldDetail key="detail" world={selectedWorld} onClose={handleBack} />
+          <WorldDetail
+            key="detail"
+            world={selectedWorld}
+            onClose={handleBack}
+          />
         )}
       </AnimatePresence>
     </div>

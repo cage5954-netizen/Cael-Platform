@@ -7,6 +7,7 @@ export interface World {
   creator: string;
   description: string;
   process: ProcessStep[];
+  style?: 'liminalChromatic' | 'monoClassic';
   playerUrl?: string; // In a real implementation, this would be an embedded Unreal Engine player
 }
 
@@ -26,6 +27,7 @@ export const worlds: World[] = [
     duration: '3-5 min',
     creator: 'Alex Chen',
     description: 'A series of interconnected transitional spaces that feel both familiar and unsettling. Navigate through empty hallways, parking garages, and stairwells that exist outside of time.',
+    style: 'liminalChromatic',
     process: [
       {
         title: 'Initial Concept',
@@ -63,6 +65,7 @@ export const worlds: World[] = [
     duration: '4-6 min',
     creator: 'Maya Rodriguez',
     description: 'An abstract environment where color itself becomes the architecture. Float through shifting planes of pure hue that respond to your movement.',
+    style: 'monoClassic',
     process: [
       {
         title: 'Color Theory Research',
@@ -100,6 +103,7 @@ export const worlds: World[] = [
     duration: '5-7 min',
     creator: 'Jordan Kim',
     description: 'Step into a photorealistic recreation of a 1990s arcade that never existed. Every detail is perfect, yet something feels off.',
+    style: 'monoClassic',
     process: [
       {
         title: 'Memory as Source',
@@ -137,6 +141,7 @@ export const worlds: World[] = [
     duration: '3-4 min',
     creator: 'Sam Torres',
     description: 'Climb through an impossible vertical structure where nature has overtaken brutalist architecture. Gravity shifts as you ascend.',
+    style: 'monoClassic',
     process: [
       {
         title: 'Sketching the Impossible',

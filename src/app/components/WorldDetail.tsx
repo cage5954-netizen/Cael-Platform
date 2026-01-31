@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Play, Clock, User, ChevronRight } from 'lucide-react';
 import { World } from '../data/worlds';
@@ -11,6 +11,15 @@ interface WorldDetailProps {
 export function WorldDetail({ world, onClose }: WorldDetailProps) {
   const [showProcess, setShowProcess] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isReducedMotion, setIsReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setIsReducedMotion(mediaQuery.matches);
+    const handleChange = () => setIsReducedMotion(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
 
   return (
     <motion.div
@@ -29,14 +38,30 @@ export function WorldDetail({ world, onClose }: WorldDetailProps) {
 
       <div className="min-h-screen">
         {/* Hero section with player */}
-        <div className="relative h-screen flex items-center justify-center bg-zinc-950">
+        <div className="relative h-screen flex items-center justify-center bg-black">
           <div className="absolute inset-0">
             <img
               src={world.thumbnail}
               alt={world.title}
               className="w-full h-full object-cover opacity-30"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/70 to-black" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black" />
+            <div
+              className={`absolute inset-0 ${
+                world.style === 'liminalChromatic'
+                  ? 'bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.22),transparent_60%)]'
+                  : 'bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.14),transparent_65%)]'
+              }`}
+            />
+            <motion.div
+              className="absolute left-[-10%] top-[20%] h-64 w-64 rounded-full bg-white/5 blur-[120px]"
+              animate={
+                isReducedMotion
+                  ? { opacity: 0.15 }
+                  : { opacity: [0.12, 0.22, 0.14], x: [-12, 10, -6], y: [0, -8, 4] }
+              }
+              transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
+            />
           </div>
 
           <div className="relative z-10 text-center px-6 max-w-4xl">
@@ -44,6 +69,12 @@ export function WorldDetail({ world, onClose }: WorldDetailProps) {
               className="text-6xl md:text-8xl text-white mb-6"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              style={{
+                textShadow:
+                  world.style === 'liminalChromatic'
+                    ? '0 0 24px rgba(255, 255, 255, 0.18), 0 0 2px rgba(255, 255, 255, 0.45)'
+                    : '0 0 18px rgba(255, 255, 255, 0.12)',
+              }}
             >
               {world.title}
             </motion.h1>
