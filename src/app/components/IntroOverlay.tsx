@@ -1,117 +1,153 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
+import styles from './IntroOverlay.module.css';
 
-type IntroOverlayProps = {
-  onEnterStart: () => void;   // start audio
-  onExitComplete: () => void; // App flips introComplete=true (unmount overlay)
-};
+interface IntroOverlayProps {
+  onEnterStart: () => void;
+  onExitComplete: () => void;
+}
 
-type Phase = 'loading' | 'ready' | 'exiting';
+const EXIT_DURATION_MS = 600;
 
-const EXIT_MS = 1100;
-
-export function IntroOverlay({
-  onEnterStart,
-  onExitComplete,
-}: IntroOverlayProps) {
-  const [phase, setPhase] = useState<Phase>('loading');
+export function IntroOverlay({ onEnterStart, onExitComplete }: IntroOverlayProps) {
   const [progress, setProgress] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
+  const [isMounted, setIsMounted] = useState(true);
+  const [isExiting, setIsExiting] = useState(false);
+  const [isReducedMotion, setIsReducedMotion] = useState(false);
 
-  const isReady = progress >= 100;
-
-  // Fake cinematic loading progress
+  // Reduced motion support
   useEffect(() => {
-    if (phase !== 'loading') return;
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setIsReducedMotion(mediaQuery.matches);
 
-    const id = window.setInterval(() => {
-      setProgress((p) => {
-        const bump = p < 55 ? 3 : p < 80 ? 2 : 1;
-        return Math.min(100, p + bump);
-      });
-    }, 55);
+    update();
+    mediaQuery.addEventListener('change', update);
+    return () => mediaQuery.removeEventListener('change', update);
+  }, []);
 
-    return () => window.clearInterval(id);
-  }, [phase]);
-
-  // When loading finishes → ready state
+  // Lock scroll while overlay is mounted
   useEffect(() => {
-    if (isReady && phase === 'loading') {
-      setPhase('ready');
-    }
-  }, [isReady, phase]);
+    if (!isMounted) return;
 
-  // Status line
-  const statusText = useMemo(() => {
-    if (phase === 'loading') return 'Initializing space.';
-    if (phase === 'ready') return 'System ready.';
-    return 'Entering...';
-  }, [phase]);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMounted]);
 
-  // Click Enter → fade out → unmount overlay
+  // Cinematic loading progress (smooth + deterministic)
+  useEffect(() => {
+    if (!isMounted) return;
+
+    let rafId = 0;
+    const startTime = performance.now();
+    const duration = 2800; // fixed duration for consistency
+
+    const tick = (timestamp: number) => {
+      const elapsed = timestamp - startTime;
+      const t = Math.min(elapsed / duration, 1);
+
+      // Ease-out curve
+      const eased = 1 - Math.pow(1 - t, 3);
+      const nextValue = Math.round(eased * 100);
+
+      setProgress(nextValue);
+
+      if (t < 1) {
+        rafId = requestAnimationFrame(tick);
+      } else {
+        setProgress(100);
+        setIsComplete(true);
+      }
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [isMounted]);
+
+  // Enter key support once ready
+  useEffect(() => {
+    if (!isComplete) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Enter') {
+        handleEnter();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isComplete]);
+
+  // Exit overlay cleanly
   const handleEnter = () => {
-    if (phase !== 'ready') return;
+    if (!isComplete || isExiting) return;
 
-    onEnterStart(); // start audio
-    setPhase('exiting');
+    onEnterStart();
+    setIsExiting(true);
 
-    // Guaranteed exit after fade duration
     window.setTimeout(() => {
+      setIsMounted(false);
       onExitComplete();
-    }, EXIT_MS);
+    }, EXIT_DURATION_MS);
   };
 
+  const progressStyle = useMemo(
+    () => ({
+      width: `${progress}%`,
+    }),
+    [progress],
+  );
+
+  if (!isMounted) return null;
+
   return (
-    <motion.div
-      className="fixed inset-0 z-[9999] bg-black text-white"
-      initial={{ opacity: 1 }}
-      animate={{ opacity: phase === 'exiting' ? 0 : 1 }}
-      transition={{ duration: EXIT_MS / 1000, ease: 'easeInOut' }}
-      style={{ pointerEvents: 'auto' }}
+    <div
+      className={`${styles.overlay} ${styles.gate} ${isExiting ? styles.exiting : ''}`}
+      aria-live="polite"
     >
-      {/* Ambient Oneirism-style bloom */}
-      <div className="pointer-events-none absolute inset-0 opacity-70 [background:radial-gradient(circle_at_center,rgba(255,255,255,0.10),transparent_55%)]" />
+      {/* Subtle bloom only (no grain, no scanlines) */}
+      <div className="pointer-events-none absolute inset-0 opacity-60 [background:radial-gradient(circle_at_center,rgba(255,255,255,0.10),transparent_55%)]" />
 
-      <div className="pointer-events-none absolute -top-40 left-1/2 h-[720px] w-[720px] -translate-x-1/2 rounded-full bg-white/5 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-56 right-[-200px] h-[680px] w-[680px] rounded-full bg-white/5 blur-3xl" />
+      <div className="relative z-10 w-full max-w-[860px] px-8 text-center">
+        {/* Label */}
+        <p className="text-[11px] tracking-[0.65em] text-gray-400">
+          LOADING
+        </p>
 
-       
-      <div className="relative grid h-full w-full place-items-center px-6">
-        <div className="w-full max-w-[860px] text-center">
-          {/* Label */}
-          <p className="text-[11px] tracking-[0.65em] text-gray-400">
-            LOADING
-          </p>
-
-          {/* Percentage */}
-          <div className="mt-4 text-7xl md:text-8xl font-semibold tabular-nums">
-            {Math.round(progress)}%
-          </div>
-
-          {/* Progress Line */}
-          <div className="mx-auto mt-7 h-[3px] w-full bg-white/10">
-            <div
-              className="h-full bg-white/70"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-
-          {/* Status */}
-          <p className="mt-4 text-sm text-gray-400">
-            {statusText}
-          </p>
-
-          {/* Enter Button */}
-          {phase === 'ready' && (
-            <button
-              type="button"
-              onClick={handleEnter}
-              className="mx-auto mt-10 rounded-full border border-white/10 bg-white/5 px-14 py-4 text-[11px] uppercase tracking-[0.35em] text-gray-200 backdrop-blur hover:bg-white/10"
-            >
-              Click to enter
-            </button>
-          )}
+        {/* Percentage */}
+        <div
+          className={`mt-5 text-7xl md:text-8xl font-semibold tabular-nums ${
+            !isReducedMotion ? styles.jitter : ''
+          }`}
+        >
+          {progress}%
         </div>
+
+        {/* Progress Line */}
+        <div className="mx-auto mt-8 h-[3px] w-full bg-white/10 overflow-hidden">
+          <div
+            className={`h-full bg-white/70 transition-[width] duration-200 ${styles.glow}`}
+            style={progressStyle}
+          />
+        </div>
+
+        {/* Status */}
+        <p className="mt-5 text-sm text-gray-400">
+          {isComplete ? 'System ready.' : 'Initializing space.'}
+        </p>
+
+        {/* Enter */}
+        {isComplete && (
+          <button
+            type="button"
+            onClick={handleEnter}
+            className="mx-auto mt-10 rounded-full border border-white/10 bg-white/5 px-14 py-4 text-[11px] uppercase tracking-[0.35em] text-gray-200 backdrop-blur hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50"
+          >
+            Click to enter
+          </button>
+        )}
       </div>
-    </motion.div>
+    </div>
   );
 }
